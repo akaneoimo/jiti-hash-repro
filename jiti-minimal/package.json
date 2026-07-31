@@ -1,0 +1,10 @@
+{
+  "name": "jiti-hash-repro",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal repro: jiti cannot load modules under a directory whose path contains '#' (URL fragment)",
+  "dependencies": {
+    "jiti": "2.7.0"
+  }
+}

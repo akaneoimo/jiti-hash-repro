@@ -14,6 +14,20 @@ node_modules/@demo/my-pkg/index.mjs      <- npm layout (control, no #)
 
 ## Run
 
+Two ways:
+
+**Real CLI (requires vp 0.2.6+ and npm)** - installs the same package (`ms`) with `vp install -g`
+and `npm install`, then imports it from each layout. Cleans up after itself:
+
+```bash
+./verify-real.sh
+# -> vp layout  FAIL: ERR_MODULE_NOT_FOUND
+# -> %23-escaped OK
+# -> npm layout OK
+```
+
+**Simulated layout (zero deps, plain Node)** - mirrors the vp layout without vp:
+
 ```bash
 node repro.mjs
 ```

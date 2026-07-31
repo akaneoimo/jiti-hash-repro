@@ -69,9 +69,10 @@ pi install npm:@juicesharp/rpiv-ask-user-question
 
 Additional repros in https://github.com/akaneoimo/jiti-hash-repro:
 
-- `vp-layout-minimal/` - standalone layout repro, no vp/pi needed: the same module fails under
-  `packages/<name>#<installId>/`, works `%23`-escaped, works under `node_modules/<name>/`.
-  Its README also records a real-environment check (vp 0.2.6 vs npm, same package `ms@2.1.3`).
+- `vp-layout-minimal/` - direct CLI repro, requires vp (v0.2.6+) and npm:
+  `./verify-real.sh` installs the same package (`ms`) via `vp install -g` and `npm install`,
+  then imports it from each layout (vp layout fails, npm layout works, `%23`-escape works).
+  A zero-dependency simulated-layout version is also there (`node repro.mjs`).
 - `jiti-minimal/` - jiti-side minimal repro: the failure surfaces through jiti's native import,
   which has no transpile fallback for `node_modules/jiti`.
 

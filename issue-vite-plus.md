@@ -1,35 +1,37 @@
 ---
-title: 'Global package install dirs `packages/<name>#<installId>` break Node ESM resolution (Pi extensions fail to load)'
-labels: bug
+title: 'Discussion: global install dirs use "#" (`packages/<name>#<installId>`) - Node ESM compatibility'
+labels: question
 ---
 
-## Description
+## Context
 
 Since v0.2.6, `vp install -g` writes packages to
 `~/.vite-plus/packages/<name>#<installId>/` - the immutable `packages/#` prefix introduced for
-atomic installs ([#1906](https://github.com/voidzero-dev/vite-plus/issues/1906), [#1945](https://github.com/voidzero-dev/vite-plus/issues/1945)).
+atomic installs ([#1906](https://github.com/voidzero-dev/vite-plus/issues/1906),
+[#1945](https://github.com/voidzero-dev/vite-plus/issues/1945)).
 
-The `#` character is legal in filesystem paths but is the **URL fragment separator**. Node's
-ESM/CJS loaders parse path strings as URLs, so any module loaded from inside these directories
-is truncated at `#` -> `ERR_MODULE_NOT_FOUND`:
+I'd like to discuss one side effect of that naming choice: `#` is legal in filesystem paths,
+but it is the **URL fragment separator**. Node's ESM/CJS loaders parse path strings as URLs,
+so any module loaded from inside these directories is truncated at `#`:
 
 - `node -e "import('<pkg>#<id>/.../index.js')"` -> `ERR_MODULE_NOT_FOUND` (path truncated at `#`)
 - Escaping `#` as `%23` (file:// URL) -> works
 
-Tools that load modules from the package at runtime (e.g. jiti-based extension loaders) fail
-when their module graph resolves into the package directory.
+This is invisible for packages that are only executed as CLIs, but it matters for packages
+whose modules are loaded programmatically at runtime (e.g. by extension/plugin loaders that
+resolve back into the install dir).
 
-## Concrete failure: Pi extensions
+## Observed case: Pi extensions
 
-`pi` (`@earendil-works/pi-coding-agent`, **Node mode**) is installed here. Its extension
+`pi` (`@earendil-works/pi-coding-agent`, Node mode) is installed here. Its extension
 `ask_user_question` lazy-loads a TUI render graph; the graph's imports resolve into the package
-dir and fail via jiti native import (which has **no fallback** for `node_modules/jiti`),
-producing an unrecoverable "stale module cache" error on every invocation.
+dir and fail (via jiti native import, which has no fallback for `node_modules/jiti`), producing
+an unrecoverable "stale module cache" error on every invocation.
 
-- Works fine when the package is copied to a path without `#` (e.g. `~/.pi/runtime/pi-coding-agent`).
+- Works fine when the package is copied to a `#`-free path (e.g. `~/.pi/runtime/pi-coding-agent`).
 - Bun binary mode (bundled virtual modules, no disk path resolution) is unaffected - only
-  Node-mode execution breaks.
-- Reinstalling Pi / the extension / restarting does not help (install dir still contains `#`).
+  Node-mode execution is affected.
+- Reinstalling Pi / the extension / restarting does not help (the install dir still contains `#`).
 
 ## Reproduction
 
@@ -54,7 +56,11 @@ pi install npm:@juicesharp/rpiv-ask-user-question
 - pi 0.83.0, Node.js 24.18.1
 - macOS arm64
 
-## Suggested fix
+## Open questions / possible directions
 
-- Avoid `#` in install dir names (e.g. `name-<installId>` or `name/<installId>`); and/or
-- Percent-encode (`#` -> `%23`) or pass `file://` URLs when Node-mode tools resolve package paths.
+- Is `#` (or `@`, `?`, ...) in install dir names a deliberate choice that downstream Node-mode
+  tooling should account for, or would a URL-safe separator be preferable
+  (e.g. `name-<installId>` or `name/<installId>`)?
+- Would it make sense for Node-mode resolution to percent-encode (`#` -> `%23`) or use
+  `file://` URLs when resolving package paths?
+- Happy to contribute either way; this thread is mainly to surface the compatibility question.

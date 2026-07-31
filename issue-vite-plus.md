@@ -48,6 +48,10 @@ an unrecoverable "stale module cache" error on every invocation.
 
 ## Reproduction
 
+Root cause in one line: vp's install layout puts a literal `#` (the URL fragment separator)
+into package paths, which Node truncates when loading. The same package installed by
+npm/pnpm/yarn/bun works fine (comparison above).
+
 ```bash
 # 1. Install pi via vp (v0.2.6+); the install dir is:
 #    ~/.vite-plus/packages/@earendil-works/pi-coding-agent#<uuid>/
@@ -63,12 +67,13 @@ pi install npm:@juicesharp/rpiv-ask-user-question
 # invoke the tool -> "the questionnaire UI cannot load - the host's module cache went stale..."
 ```
 
-Minimal repro repo (contains both issue drafts, `jiti-minimal/` and `vp-layout-repro/`):
-https://github.com/akaneoimo/jiti-hash-repro
+Additional repros in https://github.com/akaneoimo/jiti-hash-repro:
 
-A standalone layout repro (`vp-layout-repro/` in that repo) reproduces this without vp
-or pi: the same module fails under `packages/<name>#<installId>/`, works via `%23`-escaping,
-and works under `node_modules/<name>/`.
+- `vp-layout-minimal/` - standalone layout repro, no vp/pi needed: the same module fails under
+  `packages/<name>#<installId>/`, works `%23`-escaped, works under `node_modules/<name>/`.
+  Its README also records a real-environment check (vp 0.2.6 vs npm, same package `ms@2.1.3`).
+- `jiti-minimal/` - jiti-side minimal repro: the failure surfaces through jiti's native import,
+  which has no transpile fallback for `node_modules/jiti`.
 
 ## Environment
 

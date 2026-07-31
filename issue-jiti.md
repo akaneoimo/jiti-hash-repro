@@ -20,6 +20,9 @@ something worth reconsidering.
 
 ## Reproduction
 
+A runnable copy of this repro is available at
+https://github.com/akaneoimo/jiti-hash-repro (see `jiti-minimal/`).
+
 ```bash
 # 1. Put the repro at a path containing `#`
 mkdir -p '/tmp/jiti#repro' && cd '/tmp/jiti#repro'

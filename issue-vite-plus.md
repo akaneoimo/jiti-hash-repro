@@ -35,6 +35,9 @@ an unrecoverable "stale module cache" error on every invocation.
 
 ## Reproduction
 
+Minimal repro repo (contains both issue drafts and `jiti-minimal/`):
+https://github.com/akaneoimo/jiti-hash-repro
+
 ```bash
 # 1. Install pi via vp (v0.2.6+); the install dir is:
 #    ~/.vite-plus/packages/@earendil-works/pi-coding-agent#<uuid>/

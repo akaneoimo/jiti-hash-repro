@@ -1,1 +1,3 @@
 node_modules/
+!vp-layout-repro/**/node_modules/
+!vp-layout-repro/**/node_modules/**

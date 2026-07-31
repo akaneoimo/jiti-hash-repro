@@ -19,6 +19,7 @@ install directory path.
 | Path | What it is |
 |---|---|
 | `jiti-minimal/` | Standalone jiti repro (3 files + package.json). Put it at a path containing `#` -> fails; without `#` -> works. See its README. |
+| `vp-layout-repro/` | Standalone repro of vp's install layout (`packages/<name>#<installId>/`): same module fails in the vp layout, works when `%23`-escaped or under `node_modules/<name>/`. No dependencies. |
 | `issue-jiti.md` | Issue body for **unjs/jiti** (native import should percent-encode `#`). |
 | `issue-vite-plus.md` | Issue body for **voidzero-dev/vite-plus** (install dirs should not contain `#`). |
 

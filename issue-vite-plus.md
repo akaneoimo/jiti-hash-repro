@@ -1,5 +1,5 @@
 ---
-title: 'Discussion: global install dirs use "#" (`packages/<name>#<installId>`) - Node ESM compatibility'
+title: 'Discussion: install layout `packages/<name>#<installId>` differs from every other package manager (literal "#" = URL fragment)'
 labels: question
 ---
 
@@ -10,16 +10,29 @@ Since v0.2.6, `vp install -g` writes packages to
 atomic installs ([#1906](https://github.com/voidzero-dev/vite-plus/issues/1906),
 [#1945](https://github.com/voidzero-dev/vite-plus/issues/1945)).
 
-I'd like to discuss one side effect of that naming choice: `#` is legal in filesystem paths,
-but it is the **URL fragment separator**. Node's ESM/CJS loaders parse path strings as URLs,
-so any module loaded from inside these directories is truncated at `#`:
+I'd like to discuss one aspect of that layout: as far as I can tell, vp is the only major
+package manager that puts a literal `#` (the URL fragment separator) into install paths.
 
-- `node -e "import('<pkg>#<id>/.../index.js')"` -> `ERR_MODULE_NOT_FOUND` (path truncated at `#`)
+## How other package managers lay out installs
+
+| Manager | Global install path (typical) | Literal `#` in path? |
+|---|---|---|
+| npm | `$(npm prefix -g)/lib/node_modules/<name>/` | No |
+| pnpm | content-addressed store (`<store>/v3/files/<hash>`), symlinked as `<name>/` | No |
+| yarn | `node_modules/<name>/` (or `~/.yarn/berry/...`) | No |
+| bun | `~/.bun/install/global/node_modules/<name>/` | No |
+| **vite-plus** | `packages/<name>#<installId>/` | **Yes** |
+
+`#` is legal in filesystem paths, but Node's ESM/CJS loaders parse path strings as URLs and
+truncate at `#`:
+
+- `node -e "import('<pkg>#<id>/.../index.js')"` -> `ERR_MODULE_NOT_FOUND` (truncated at `#`)
 - Escaping `#` as `%23` (file:// URL) -> works
 
-This is invisible for packages that are only executed as CLIs, but it matters for packages
-whose modules are loaded programmatically at runtime (e.g. by extension/plugin loaders that
-resolve back into the install dir).
+The practical consequence: the *same* package works when installed by npm/pnpm/yarn/bun, but
+breaks when installed by vp, if anything at runtime resolves modules back into the install dir.
+The atomic-install design could be kept without the URL hazard (e.g. `name-<installId>` or
+`name/<installId>`).
 
 ## Observed case: Pi extensions
 
@@ -34,9 +47,6 @@ an unrecoverable "stale module cache" error on every invocation.
 - Reinstalling Pi / the extension / restarting does not help (the install dir still contains `#`).
 
 ## Reproduction
-
-Minimal repro repo (contains both issue drafts and `jiti-minimal/`):
-https://github.com/akaneoimo/jiti-hash-repro
 
 ```bash
 # 1. Install pi via vp (v0.2.6+); the install dir is:
@@ -53,17 +63,22 @@ pi install npm:@juicesharp/rpiv-ask-user-question
 # invoke the tool -> "the questionnaire UI cannot load - the host's module cache went stale..."
 ```
 
+Minimal repro repo (contains both issue drafts, `jiti-minimal/` and `vp-layout-repro/`):
+https://github.com/akaneoimo/jiti-hash-repro
+
+A standalone layout repro (`vp-layout-repro/` in that repo) reproduces this without vp
+or pi: the same module fails under `packages/<name>#<installId>/`, works via `%23`-escaping,
+and works under `node_modules/<name>/`.
+
 ## Environment
 
 - vp 0.2.6 (latest check shows 0.2.7)
 - pi 0.83.0, Node.js 24.18.1
 - macOS arm64
 
-## Open questions / possible directions
+## Open questions
 
-- Is `#` (or `@`, `?`, ...) in install dir names a deliberate choice that downstream Node-mode
-  tooling should account for, or would a URL-safe separator be preferable
-  (e.g. `name-<installId>` or `name/<installId>`)?
-- Would it make sense for Node-mode resolution to percent-encode (`#` -> `%23`) or use
-  `file://` URLs when resolving package paths?
-- Happy to contribute either way; this thread is mainly to surface the compatibility question.
+- Was `#` in install dir names a deliberate choice, or an incidental separator? If deliberate,
+  how should downstream Node-mode tooling be expected to handle it?
+- Would aligning with common practice (no URL-special characters in install paths,
+  e.g. `name-<installId>`) be acceptable? Happy to contribute the change.

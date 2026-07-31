@@ -1,0 +1,7 @@
+{
+  "name": "vp-layout-repro",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal repro: vp's packages/<name>#<installId> install layout breaks Node ESM resolution"
+}
